@@ -1,6 +1,11 @@
-#include "D3D12Lite.h"
+#include <fstream>
+#include <iostream>
+#include <cstddef>
+#include <bitset>
+#include <cstdint>
 
-using namespace D3D12Lite;
+#include "Renderer.h"
+#include "TTFReader.h"
 
 // https://learn.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window
 LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
@@ -29,53 +34,66 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
     }
 }
 
-class Renderer
-{
-public:
-    Renderer(HWND windowHandle, Uint2 screenSize);
-    ~Renderer();
-    void Render();
-
-private:
-    std::unique_ptr<Device> mDevice;
-    std::unique_ptr<GraphicsContext> mGraphicsContext;
-
-    void RenderClearColor();
+struct TableRecord {
+    uint32_t checksum;
+    uint32_t offset;
+    uint32_t length;
 };
 
-Renderer::Renderer(HWND windowHandle, Uint2 screenSize)
+struct TableDirectory {
+    uint32_t scalarType;
+    uint16_t numTables;
+    uint16_t searchRange;
+    uint16_t entrySelector;
+    uint16_t rangeShift;
+};
+
+class TrueTypeFont
 {
-    mDevice = std::make_unique<Device>(windowHandle, screenSize);
-    mGraphicsContext = mDevice->CreateGraphicsContext();
+public:
+    TrueTypeFont(const std::string& ttf_file);
+
+private:
+
+    TTFReader mTTFReader;
+    TableDirectory mTableDirectory;
+    std::unordered_map<std::wstring, TableRecord> mTables;
+    int length;
+};
+
+TrueTypeFont::TrueTypeFont(const std::string& ttf_file) : mTTFReader{ ttf_file }
+{
+    mTableDirectory = {
+        .scalarType = mTTFReader.readUInt32(),
+        .numTables = mTTFReader.readUInt16(),
+        .searchRange = mTTFReader.readUInt16(),
+        .entrySelector = mTTFReader.readUInt16(),
+        .rangeShift = mTTFReader.readUInt16()
+    };
+    
+    for (int i = 0; i < mTableDirectory.numTables; i += 1) {
+        std::wstring tag = mTTFReader.readString(4);
+        TableRecord nextRecord = {
+            .checksum = mTTFReader.readUInt32(),
+            .offset = mTTFReader.readUInt32(),
+            .length = mTTFReader.readUInt32()
+        };
+        mTables.emplace(std::make_pair(tag, nextRecord));
+
+        if (tag != L"head") {
+            assert(mTTFReader.calculateChecksum(nextRecord.offset, nextRecord.length) == nextRecord.checksum);
+        }
+    }
 }
 
-Renderer::~Renderer(){}
-
-void Renderer::Render()
+class TTFParser
 {
-    RenderClearColor();
-}
+private:
 
-void Renderer::RenderClearColor()
-{
-    mDevice->BeginFrame();
-    TextureResource& backBuffer = mDevice->GetCurrentBackBuffer();
+public:
+    TTFParser();
 
-    mGraphicsContext->Reset();
-
-    mGraphicsContext->AddBarrier(backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-    mGraphicsContext->FlushBarriers();
-
-    mGraphicsContext->ClearRenderTarget(backBuffer, Color(0.0, 0.018, 0.001));
-
-    mGraphicsContext->AddBarrier(backBuffer, D3D12_RESOURCE_STATE_PRESENT);
-    mGraphicsContext->FlushBarriers();
-
-    mDevice->SubmitContextWork(*mGraphicsContext);
-
-    mDevice->EndFrame();
-    mDevice->Present();
-}
+};
 
 int main()
 {
@@ -107,6 +125,8 @@ int main()
     ShowCursor(true);
 
     auto renderer = std::make_unique<Renderer>(windowHandle, windowSize);
+    
+    TrueTypeFont ttf("res/CascadiaMono.ttf");
 
     bool shouldExit = false;
     while (!shouldExit) {
