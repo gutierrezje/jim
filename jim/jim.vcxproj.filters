@@ -176,6 +176,9 @@
     <ClInclude Include="TTFReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TTFDataTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="SimpleMath\SimpleMath.inl">

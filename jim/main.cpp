@@ -34,20 +34,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
     }
 }
 
-struct TableRecord {
-    uint32_t checksum;
-    uint32_t offset;
-    uint32_t length;
-};
-
-struct TableDirectory {
-    uint32_t scalarType;
-    uint16_t numTables;
-    uint16_t searchRange;
-    uint16_t entrySelector;
-    uint16_t rangeShift;
-};
-
 class TrueTypeFont
 {
 public:
@@ -56,44 +42,35 @@ public:
 private:
 
     TTFReader mTTFReader;
-    TableDirectory mTableDirectory;
-    std::unordered_map<std::wstring, TableRecord> mTables;
+    TTF::TableDirectory mTableDirectory;
+    std::unordered_map<std::wstring, TTF::TableRecord> mTables;
+    TTF::HeadTable mHeadTable;
+    uint32_t mGlyphOffset;
     int length;
 };
 
 TrueTypeFont::TrueTypeFont(const std::string& ttf_file) : mTTFReader{ ttf_file }
 {
-    mTableDirectory = {
-        .scalarType = mTTFReader.readUInt32(),
-        .numTables = mTTFReader.readUInt16(),
-        .searchRange = mTTFReader.readUInt16(),
-        .entrySelector = mTTFReader.readUInt16(),
-        .rangeShift = mTTFReader.readUInt16()
-    };
+    mTableDirectory = mTTFReader.readTableDirectory();
     
     for (int i = 0; i < mTableDirectory.numTables; i += 1) {
-        std::wstring tag = mTTFReader.readString(4);
-        TableRecord nextRecord = {
-            .checksum = mTTFReader.readUInt32(),
-            .offset = mTTFReader.readUInt32(),
-            .length = mTTFReader.readUInt32()
-        };
-        mTables.emplace(std::make_pair(tag, nextRecord));
-
-        if (tag != L"head") {
-            assert(mTTFReader.calculateChecksum(nextRecord.offset, nextRecord.length) == nextRecord.checksum);
-        }
+        auto nextRecord = mTTFReader.readTableRecord();
+        mTables.emplace(nextRecord);
     }
+    if (auto headRecord = mTables.find(L"head"); headRecord != mTables.end()) {
+        mHeadTable = mTTFReader.readHeadTable(headRecord->second.offset);
+    }
+    else {
+        std::wcerr << "head table not found in TTF file.\n";
+    }
+    if (auto locaRecord = mTables.find(L"loca"); locaRecord != mTables.end()) {
+        mGlyphOffset = mTTFReader.readGlyphOffset(locaRecord->second.offset, 1, mHeadTable.indexToLocFormat);
+    }
+    else {
+        std::wcerr << "loca table not found in TTF file.\n";
+    }
+    std::cout << "DONE\n";
 }
-
-class TTFParser
-{
-private:
-
-public:
-    TTFParser();
-
-};
 
 int main()
 {
@@ -126,7 +103,7 @@ int main()
 
     auto renderer = std::make_unique<Renderer>(windowHandle, windowSize);
     
-    TrueTypeFont ttf("res/CascadiaMono.ttf");
+    TrueTypeFont ttf("res/Fonts/CascadiaMono.ttf");
 
     bool shouldExit = false;
     while (!shouldExit) {
@@ -143,7 +120,7 @@ int main()
         renderer->Render();
     }
 
-    renderer = nullptr;
+    renderer.release();
 
     DestroyWindow(windowHandle);
     windowHandle = nullptr;
