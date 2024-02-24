@@ -108,6 +108,9 @@
     <ClCompile Include="TTFReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TrueTypeFont.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imconfig.h">
@@ -178,6 +181,9 @@
     </ClInclude>
     <ClInclude Include="TTFDataTypes.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TrueTypeFont.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

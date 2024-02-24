@@ -5,7 +5,7 @@
 #include <cstdint>
 
 #include "Renderer.h"
-#include "TTFReader.h"
+#include "TrueTypeFont.h"
 
 // https://learn.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window
 LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
@@ -32,44 +32,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
     default:
         return DefWindowProc(hwnd, umessage, wparam, lparam);
     }
-}
-
-class TrueTypeFont
-{
-public:
-    TrueTypeFont(const std::string& ttf_file);
-
-private:
-
-    TTFReader mTTFReader;
-    TTF::TableDirectory mTableDirectory;
-    std::unordered_map<std::wstring, TTF::TableRecord> mTables;
-    TTF::HeadTable mHeadTable;
-    uint32_t mGlyphOffset;
-    int length;
-};
-
-TrueTypeFont::TrueTypeFont(const std::string& ttf_file) : mTTFReader{ ttf_file }
-{
-    mTableDirectory = mTTFReader.readTableDirectory();
-    
-    for (int i = 0; i < mTableDirectory.numTables; i += 1) {
-        auto nextRecord = mTTFReader.readTableRecord();
-        mTables.emplace(nextRecord);
-    }
-    if (auto headRecord = mTables.find(L"head"); headRecord != mTables.end()) {
-        mHeadTable = mTTFReader.readHeadTable(headRecord->second.offset);
-    }
-    else {
-        std::wcerr << "head table not found in TTF file.\n";
-    }
-    if (auto locaRecord = mTables.find(L"loca"); locaRecord != mTables.end()) {
-        mGlyphOffset = mTTFReader.readGlyphOffset(locaRecord->second.offset, 1, mHeadTable.indexToLocFormat);
-    }
-    else {
-        std::wcerr << "loca table not found in TTF file.\n";
-    }
-    std::cout << "DONE\n";
 }
 
 int main()
@@ -104,6 +66,7 @@ int main()
     auto renderer = std::make_unique<Renderer>(windowHandle, windowSize);
     
     TrueTypeFont ttf("res/Fonts/CascadiaMono.ttf");
+    ttf.readGlyph(1);
 
     bool shouldExit = false;
     while (!shouldExit) {

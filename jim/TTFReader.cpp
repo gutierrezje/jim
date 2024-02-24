@@ -1,5 +1,6 @@
 #include "TTFReader.h"
 
+#include <algorithm>
 #include <array>
 #include <vector>
 
@@ -78,11 +79,11 @@ std::wstring TTFReader::readString(int length)
     return str;
 }
 
-TTF::HeadTable TTFReader::readHeadTable(uint32_t headOffset)
+ttf::HeadTable TTFReader::readHeadTable(uint32_t headOffset)
 {
     auto oldPos = mByteStream.tellg();
     mByteStream.seekg(headOffset);
-    TTF::HeadTable headTable{
+    ttf::HeadTable headTable{
         .version = readFixed(),
         .fontRevision = readFixed(),
         .checksumAdjustment = readUInt32(),
@@ -108,9 +109,9 @@ TTF::HeadTable TTFReader::readHeadTable(uint32_t headOffset)
     return headTable;
 }
 
-TTF::TableDirectory TTFReader::readTableDirectory()
+ttf::TableDirectory TTFReader::readTableDirectory()
 {
-    return TTF::TableDirectory{
+    return ttf::TableDirectory{
         .scalarType = readUInt32(),
         .numTables = readUInt16(),
         .searchRange = readUInt16(),
@@ -119,11 +120,11 @@ TTF::TableDirectory TTFReader::readTableDirectory()
     };
 }
 
-std::pair<std::wstring, TTF::TableRecord> TTFReader::readTableRecord()
+std::pair<std::wstring, ttf::TableRecord> TTFReader::readTableRecord()
 {
     std::wstring tag = readString(4);
 
-    TTF::TableRecord record{
+    ttf::TableRecord record{
         .checksum = readUInt32(),
         .offset = readUInt32(),
         .length = readUInt32()
@@ -138,8 +139,7 @@ std::pair<std::wstring, TTF::TableRecord> TTFReader::readTableRecord()
     return std::make_pair(tag, record);
 }
 
-
-uint32_t TTFReader::readGlyphOffset(uint32_t locaOffset, int index, uint16_t indexToLocFormat)
+uint32_t TTFReader::readGlyphOffset(int index, uint32_t locaOffset, uint16_t indexToLocFormat)
 {
     auto oldPos = mByteStream.tellg();
     uint32_t offset;
@@ -153,4 +153,104 @@ uint32_t TTFReader::readGlyphOffset(uint32_t locaOffset, int index, uint16_t ind
 
     mByteStream.seekg(oldPos);
     return offset;
+}
+
+std::variant<ttf::SimpleGlyph, ttf::ComplexGlyph> TTFReader::readGlyph(int index, uint32_t locaOffset, ttf::TableRecord glyfTable, uint16_t indexToLocFormat)
+{
+    uint32_t offset = glyfTable.offset + readGlyphOffset(index, locaOffset, indexToLocFormat);
+    if (offset >= glyfTable.offset + glyfTable.length) {
+        return ttf::SimpleGlyph{ 0 };
+    }
+
+    mByteStream.seekg(offset);
+
+    ttf::GlyphDescription glyphDesc{
+        .numberOfCountours = readInt16(),
+        .xMin = readInt16(),
+        .yMin = readInt16(),
+        .xMax = readInt16(),
+        .yMax = readInt16()
+    };
+
+    if (glyphDesc.numberOfCountours == -1) {
+        std::cout << "TODO\n";
+        return ttf::ComplexGlyph{ 0 };
+    }
+    else {
+        return readSimpleGlyph(glyphDesc);
+    }
+}
+
+ttf::SimpleGlyph TTFReader::readSimpleGlyph(ttf::GlyphDescription glyphDesc)
+{
+    ttf::SimpleGlyph glyph{ 0 };
+    glyph.glyphDesc = glyphDesc;
+
+    glyph.endPtsOfContours = std::vector<uint16_t>(glyphDesc.numberOfCountours, 0);
+    for (int i = 0; i < glyphDesc.numberOfCountours; i += 1) {
+        glyph.endPtsOfContours[i] = readUInt16();
+    }
+
+    // Skipping instructions
+    mByteStream.seekg(readUInt16(), std::ios::cur);
+
+    if (glyphDesc.numberOfCountours == 0) {
+        return glyph;
+    }
+
+    int numPoints = std::ranges::max(glyph.endPtsOfContours) + 1;
+    std::cout << numPoints << std::endl;
+
+    glyph.flags = std::vector<uint8_t>(numPoints);
+    for (int i = 0; i < numPoints; i += 1) {
+        uint8_t flag = readUInt8();
+        glyph.flags[i] = flag;
+        if (flag & ttf::GlyphFlags::REPEAT) {
+            auto repeatCount = readUInt8();
+            
+            while (repeatCount -= 1) {
+                i += 1;
+                glyph.flags[i] = flag;
+            }
+        }
+    }
+
+    // Read coordinates
+    int value = 0;
+    glyph.xCoordinates = std::vector<uint16_t>(numPoints, 0);
+    for (int i = 0; i < numPoints; i += 1) {
+        uint8_t flag = glyph.flags[i];
+        if (flag & ttf::GlyphFlags::X_SHORT) {
+            if (flag & ttf::GlyphFlags::X_SAME_OR_POS) {
+                value += readUInt8();
+            }
+            else {
+                value -= readUInt8();
+            }
+        }
+        else if (~flag & ttf::GlyphFlags::X_SAME_OR_POS) {
+            value += readInt16();
+        }
+        glyph.xCoordinates[i] = value;
+    }
+
+    value = 0;
+    glyph.yCoordinates = std::vector<uint16_t>(numPoints, 0);
+    for (int i = 0; i < numPoints; i += 1) {
+        uint8_t flag = glyph.flags[i];
+        if (flag & ttf::GlyphFlags::Y_SHORT) {
+            if (flag & ttf::GlyphFlags::Y_SAME_OR_POS) {
+                value += readUInt8();
+            }
+            else {
+                value -= readUInt8();
+            }
+        }
+        else if (~flag & ttf::GlyphFlags::Y_SAME_OR_POS) {
+            value += readInt16();
+        }
+        glyph.yCoordinates[i] = value;
+    }
+
+    return glyph;
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <fstream>
+#include <variant>
+
 #include "TTFDataTypes.h"
 
 class TTFReader
@@ -20,10 +22,12 @@ public:
 	std::wstring readString(int length);
 
 	// TTF Data Types
-	TTF::HeadTable readHeadTable(uint32_t headOffset);
-	TTF::TableDirectory readTableDirectory();
-	std::pair<std::wstring, TTF::TableRecord> readTableRecord();
-	uint32_t readGlyphOffset(uint32_t locaOffset, int index, uint16_t indexToLocFormat);
+	ttf::HeadTable readHeadTable(uint32_t headOffset);
+	ttf::TableDirectory readTableDirectory();
+	std::pair<std::wstring, ttf::TableRecord> readTableRecord();
+	uint32_t readGlyphOffset(int index, uint32_t locaOffset, uint16_t indexToLocFormat);
+	std::variant<ttf::SimpleGlyph, ttf::ComplexGlyph> readGlyph(int index, uint32_t locaOffset, ttf::TableRecord glyfTable, uint16_t indexToLocFormat);
+	ttf::SimpleGlyph readSimpleGlyph(ttf::GlyphDescription);
 
 	uint32_t calculateChecksum(uint32_t offset, uint32_t length);
 

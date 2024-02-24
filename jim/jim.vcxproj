@@ -134,6 +134,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="TrueTypeFont.cpp" />
     <ClCompile Include="TTFReader.cpp" />
     <ClCompile Include="D3D12Lite.cpp" />
     <ClCompile Include="D3D12MemoryAllocator\D3D12MemAlloc.cpp" />
@@ -167,6 +168,7 @@
     <ClCompile Include="Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TrueTypeFont.h" />
     <ClInclude Include="TTFDataTypes.h" />
     <ClInclude Include="TTFReader.h" />
     <ClInclude Include="D3D12Lite.h" />
