@@ -185,6 +185,9 @@
     <ClInclude Include="TrueTypeFont.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\Shared.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="SimpleMath\SimpleMath.inl">
@@ -215,5 +218,9 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="dxc\bin\x64\dxcompiler.dll" />
+    <CopyFileToFolders Include="dxc\bin\x64\dxil.dll" />
   </ItemGroup>
 </Project>

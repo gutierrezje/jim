@@ -168,6 +168,7 @@
     <ClCompile Include="Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Shaders\Shared.h" />
     <ClInclude Include="TrueTypeFont.h" />
     <ClInclude Include="TTFDataTypes.h" />
     <ClInclude Include="TTFReader.h" />
@@ -194,6 +195,12 @@
     <ClInclude Include="SimpleMath\SimpleMath.h" />
   </ItemGroup>
   <ItemGroup>
+    <CopyFileToFolders Include="dxc\bin\x64\dxcompiler.dll">
+      <FileType>Document</FileType>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="dxc\bin\x64\dxil.dll">
+      <FileType>Document</FileType>
+    </CopyFileToFolders>
     <None Include="DXTex\DirectXTex.inl" />
     <None Include="DXTex\Shaders\Compiled\BC6HEncode_EncodeBlockCS.inc" />
     <None Include="DXTex\Shaders\Compiled\BC6HEncode_TryModeG10CS.inc" />

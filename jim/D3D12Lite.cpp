@@ -1001,7 +1001,12 @@ namespace D3D12Lite
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
         {
             debugController->EnableDebugLayer();
+            ID3D12Debug1* debugController1;
+            debugController->QueryInterface(IID_PPV_ARGS(&debugController1));
+            debugController1->EnableDebugLayer();
+            debugController1->SetEnableGPUBasedValidation(true);
             SafeRelease(debugController);
+            SafeRelease(debugController1);
         }
 #endif
 

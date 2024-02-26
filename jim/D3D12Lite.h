@@ -675,6 +675,7 @@ namespace D3D12Lite
         ID3D12Device5* mDevice = nullptr;
         IDXGIFactory7* mDXGIFactory = nullptr;
         IDXGISwapChain4* mSwapChain = nullptr;
+        //IDXGIDebug1* mDebugController = nullptr;
         D3D12MA::Allocator* mAllocator = nullptr;
         std::unique_ptr<Queue> mGraphicsQueue;
         std::unique_ptr<Queue> mComputeQueue;
