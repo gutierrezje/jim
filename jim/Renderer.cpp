@@ -4,6 +4,8 @@ Renderer::Renderer(HWND windowHandle, Uint2 screenSize)
 {
     mDevice = std::make_unique<Device>(windowHandle, screenSize);
     mGraphicsContext = mDevice->CreateGraphicsContext();
+
+    initializeTriangleResources();
 }
 
 Renderer::~Renderer()
@@ -21,7 +23,6 @@ Renderer::~Renderer()
 
 void Renderer::Render()
 {
-    initializeTriangleResources();
     renderTriangle();
 }
 

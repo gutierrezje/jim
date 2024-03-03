@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iostream>
 #include <cstddef>
-#include <bitset>
 #include <cstdint>
 
 #include "Renderer.h"
@@ -37,7 +36,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 int main()
 {
     std::wstring applicationName = L"jim";
-    Uint2 windowSize = { 1920, 1080 };
+    Uint2 windowSize = { 1280, 720 };
     HINSTANCE moduleHandle = GetModuleHandle(nullptr);
 
     WNDCLASSEX wc = { 0 };
